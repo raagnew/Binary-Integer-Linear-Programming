@@ -1,8 +1,12 @@
-bilp.max <- function(c,A,b,itermax){
+BILP.MAX <- function(c,A,b,itermax){
 # Simple Maximizing Binary Integer Linear Programming Code
-# Uses collapsed dual approach
+# Employs Williamson primal-dual approximation
+# Primal BILP is relaxed to an LP
+# Dual LP is solved in collapsed form and provides bound
+# Primal BILP assignments are by ordered shadow prices
+# Performs well on large problems
 # Standard form: max c'x, subject to Ax <= b, x binary 0 or 1
-# c n-vector, b m-vector, A m x n matrix
+# c positive n-vector, b nonnegative m-vector, A m x n matrix
 # Bob Agnew, raagnew1@gmail.com, raagnew.com
 m <- length(b)
 n <- length(c)
@@ -15,50 +19,54 @@ dual <- function(y){sum(b%*%y) + sum(pmax(0,c - y%*%A))}
 opt <- nlminb(rep(0,m),dual,control=list(iter.max=itermax),lower=rep(0,m),upper=Inf)
 # Optimal dual solution is approximate, close but not exact
 y <- opt$par
-v <- c - y%*%A
-ord <- order(v,decreasing=TRUE)
+z <- c - y%*%A
+ord <- order(z,decreasing=TRUE) # Ordering by dual-informed shadow prices
 x <- rep(0,n) # Initial solution of zeros
-# Sequential binary assignments to ensure constraints satisfied
+# Ordered sequential binary assignments to ensure feasibility
 for (j in 1:n){
 x1 <- x
 k <- ord[j]
 x1[k] <- 1
-ifelse(min(b - A%*%x1) >= 0,x[k] <- 1,break)}
-result <- list(x,cbind(A%*%x,b),as.numeric(c%*%x),opt$objective)
-names(result) <- c("solution","constraints","maximum","dual_bound")
+ifelse(min(b - A%*%x1) >= 0,x[k] <- 1,break)} # Stop when assignment becomes infeasible
+result <- list(x,as.numeric(c%*%x),opt$objective,as.numeric(c%*%x)/opt$objective)
+names(result) <- c("SOLUTION","PRIMAL_BILP_MAX","DUAL_LP_MIN","APPROXIMATION_RATIO")
 return(result)}
 
-bilp.min <- function(c,A,b,itermax){
+BILP.MIN <- function(c,A,b,itermax){
 # Simple Minimizing Binary Integer Linear Programming Code
-# Uses collapsed dual approach
+# Employs Williamson primal-dual approximation
+# Primal BILP is relaxed to an LP
+# Dual LP is solved in collapsed form and provides bound
+# Primal BILP assignments are by ordered shadow prices
+# Performs well on large problems
 # Standard form: min c'x, subject to Ax >= b, x binary 0 or 1
-# c n-vector, b m-vector, A m x n matrix
+# c positive n-vector, b nonnegative m-vector, A m x n matrix
 # Bob Agnew, raagnew1@gmail.com, raagnew.com
 m <- length(b)
 n <- length(c)
 if (min(A%*%rep(1,n) - b) < 0){
 stop("Initial Solution of Ones Infeasible")
 return}
-# Negative collapsed relaxed LP dual minimization function
+# Negative (for maximization) collapsed relaxed LP dual minimization function
 dual <- function(y){-sum(b%*%y) + sum(pmax(0,y%*%A - c))}
 # Optimization of negative collapsed dual with plain vanilla nonlinear solver
 opt <- nlminb(rep(0,m),dual,control=list(iter.max=itermax),lower=rep(0,m),upper=Inf)
 # Optimal dual solution is approximate, close but not exact
 y <- opt$par
-v <- c - y%*%A
-ord <- order(v,decreasing=TRUE)
+z <- c - y%*%A
+ord <- order(z,decreasing=TRUE) # Ordering by dual-informed shadow prices
 x <- rep(1,n) # Initial solution of ones
 # Sequential binary assignments to ensure constraints satisfied
 for (j in 1:n){
 x1 <- x
 k <- ord[j]
 x1[k] <- 0
-ifelse(min(A%*%x1 - b) >= 0,x[k] <- 0,break)}
-result <- list(x,cbind(A%*%x,b),as.numeric(c%*%x),-opt$objective)
-names(result) <- c("solution","constraints","minimum","dual_bound")
+ifelse(min(A%*%x1 - b) >= 0,x[k] <- 0,break)} # Stop when assignment becomes infeasible
+result <- list(x,as.numeric(c%*%x),-opt$objective,-as.numeric(c%*%x)/opt$objective)
+names(result) <- c("SOLUTION","PRIMAL_BILP_MIN","DUAL_LP_MAX","APPROXIMATION_RATIO")
 return(result)}
 
-# Textbook problem
+# Textbook Problem
 # max 8*x1 + 11*x2 + 6*x3 + 4*x4
 # subject to:
 # 5*x1 + 7*x2 + 3*x4 <= 14
@@ -72,26 +80,33 @@ A <- c(A,2,10,6,4)
 A <- matrix(A,nrow=3,ncol=4,byrow=TRUE)
 b <- c(14,12,15)
 
-# bilp.max solution
-result1 <- bilp.max(c,A,b,1000)
-# Binary solution - optimal
-result1$solution
-#constraints satisfied
-result1$constraints
-# Maximal value
-result1$maximum
-# Dual upper bound
-result1$dual_bound
+# BILP.MAX Solution
+RESULT1 <- BILP.MAX(c,A,b,1000)
+# Approximate BILP Solution
+RESULT1$SOLUTION
+# Constraints Satisfied
+m <- dim(A)[1]
+df <- data.frame(A%*%RESULT1$SOLUTION,rep(" <= ",m),b)
+names(df) <- c("Ax","","b")
+df
+# Maximal Primal Value - Optimal
+RESULT1$PRIMAL_BILP_MAX
+# Dual Upper Bound
+RESULT1$DUAL_LP_MIN
+# Approximation Ratio
+RESULT1$APPROXIMATION_RATIO
 
-# lpSolve solution for comparison
+# lpSolve BILP Solution for Comparison
 library("lpSolve")
-result2 <- lp("max",c,A,const.dir=rep("<=",3),b,all.bin=TRUE)
-# Binary solution - optimal
-result2$solution
-# Constraints satisfied
-cbind(A%*%result2$solution,b)
-# Maximal value
-result2$objval
+RESULT2 <- lp("max",c,A,const.dir=rep("<=",3),b,all.bin=TRUE)
+# Optimal BILP Solution
+RESULT2$solution
+# Constraints Satisfied
+df <- data.frame(A%*%RESULT2$solution,rep(" <= ",m),b)
+names(df) <- c("Ax","","b")
+df
+# Maximal Primal Value - Optimal
+RESULT2$objval
 
 # Another Textbook Problem
 # min 10*x1 + 12*x2 + 12*x3 + 13*x4 + 11*x5
@@ -112,28 +127,35 @@ A <- c(A,0,1,1,1,1,1,0,0,1)
 A <- matrix(A,nrow=5,ncol=9,byrow=TRUE)
 b <- rep(1,5)
 
-# bilp.min solution
-result3 <- bilp.min(c,A,b,1000)
-# Binary solution - suboptimal
-result3$solution
-# Constraints satisfied
-result3$constraints
-# Minimal value - suboptimal
-result3$minimum
-# Dual lower bound 
-result3$dual_bound
+# BILP.MIN Solution
+RESULT3 <- BILP.MIN(c,A,b,1000)
+# Approximate BILP Solution
+RESULT3$SOLUTION
+# Constraints Satisfied
+m <- dim(A)[1]
+df <- data.frame(A%*%RESULT3$SOLUTION,rep(" >= ",m),b)
+names(df) <- c("Ax","","b")
+df
+# Minimal Primal Value - Suboptimal
+RESULT3$PRIMAL_BILP_MIN
+# Dual Lower Bound 
+RESULT3$DUAL_LP_MAX
+# Approximation Ratio
+RESULT3$APPROXIMATION_RATIO
 
-# lpSolve solution for comparison
+# lpSolve BILP Solution for Comparison
 library("lpSolve")
-result4 <- lp("min",c,A,const.dir=rep(">=",5),b,all.bin=TRUE)
-# Binary solution - optimal
-result4$solution
-# Constraints satisfied exactly
-cbind(A%*%result4$solution,b)
-# Minimal value - optimal
-result4$objval
+RESULT4 <- lp("min",c,A,const.dir=rep(">=",5),b,all.bin=TRUE)
+# Optimal BILP Solution
+RESULT4$solution
+# Constraints Satisfied Exactly
+df <- data.frame(A%*%RESULT4$solution,rep(" >= ",m),b)
+names(df) <- c("Ax","","b")
+df
+# Minimal BILP Value - Optimal
+RESULT4$objval
 
-# Randomized inputs for large problems
+# Randomized Inputs for Large Randomized Problems (50K variables, 100 constraints)
 set.seed(17)
 c <- sample.int(100,50000,replace=TRUE,prob=NULL)
 A <- sample.int(50,5000000,replace=TRUE,prob=NULL)
@@ -142,41 +164,49 @@ b <- sample.int(1250000,100,replace=TRUE,prob=NULL)
 
 date() #Time
 
-# bilp.max solution
-result5 <- bilp.max(c,A,b,10000)
-# First 100 elements of binary solution
-result5$solution[1:100]
-# First 100 constraint elements
-cbind((A[1:100,]%*%result5$solution),b[1:100])
-# Constraints satisfied by maximal solution
-sum(A%*%result5$solution <= b)
-# Maximal value - close to dual upper bound
-result5$maximum
-# Dual upper bound 
-result5$dual_bound
+# BILP.MAX Solution
+RESULT5 <- BILP.MAX(c,A,b,10000)
+# Approximate BILP Solution (first 1,000 elements)
+RESULT5$SOLUTION[1:1000]
+# Number of Constraints Satisfied
+sum(A%*%RESULT5$SOLUTION <= b)
+# m <- dim(A)[1]
+# df <- data.frame(A%*%RESULT5$SOLUTION,rep(" <= ",m),b)
+# names(df) <- c("Ax","","b")
+# df
+# Maximal Primal Value
+RESULT5$PRIMAL_BILP_MAX
+# Dual Upper Bound 
+RESULT5$DUAL_LP_MIN
+# Approximation Ratio - Very Close
+RESULT5$APPROXIMATION_RATIO
 
-date() #Time - efficient
+date() #Time - Efficient
 
-# lpSolve solution for comparison - gagged on large problem, just hung for hours
+# lpSolve BILP Solution for Comparison - gagged on large problem, just hung for hours
 # library("lpSolve")
-# result6 <- lp("max",c,A,const.dir=rep("<=",100),b,all.bin=TRUE)
-# result6$solution[1:100]
-# result6$objval
+# RESULT6 <- lp("max",c,A,const.dir=rep("<=",100),b,all.bin=TRUE)
+# RESULT6$solution
+# RESULT6$objval
 
-# bilp.min solution
-result7 <- bilp.min(c,A,b,10000)
-# First 100 elements of binary solution
-result7$solution[1:100]
-# First 100 constraint elements
-cbind((A[1:100,]%*%result7$solution),b[1:100])
-# Constraints satisfied by minimal solution
-sum(A%*%result7$solution >= b)
-# Minimal value - close to dual lower bound
-result7$minimum
-# Dual lower bound 
-result7$dual_bound
+# BILP.MIN Solution
+RESULT7 <- BILP.MIN(c,A,b,10000)
+# Approximate BILP Solution (first 1,000 elements)
+RESULT7$SOLUTION[1:1000]
+# Number of Constraints Satisfied
+sum(A%*%RESULT7$SOLUTION >= b)
+# m <- dim(A)[1]
+# df <- data.frame(A%*%RESULT4$solution,rep(" >= ",m),b)
+# names(df) <- c("Ax","","b")
+# df
+# Minimal Primal Value
+RESULT7$PRIMAL_BILP_MIN
+# Dual Lower Bound 
+RESULT7$DUAL_LP_MAX
+# Approximation Ratio - Very Close
+RESULT7$APPROXIMATION_RATIO
 
-date() #Time - efficient
+date() #Time - Efficient
 
 
  
