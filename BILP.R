@@ -14,7 +14,7 @@ if (min(b) < 0){
 stop("Initial Solution of Zeros Infeasible")
 return}
 # Collapsed relaxed LP dual minimization function
-dual <- function(y){sum(b%*%y) + sum(pmax(0,c - y%*%A))}
+dual <- function(y){b%*%y + sum(pmax(0,c - y%*%A))}
 # Optimization of collapsed dual with plain vanilla nonlinear solver
 opt <- nlminb(rep(0,m),dual,control=list(iter.max=itermax),lower=rep(0,m),upper=Inf)
 # Optimal dual solution is approximate, close but not exact
@@ -48,7 +48,7 @@ if (min(A%*%rep(1,n) - b) < 0){
 stop("Initial Solution of Ones Infeasible")
 return}
 # Negative (for maximization) collapsed relaxed LP dual minimization function
-dual <- function(y){-sum(b%*%y) + sum(pmax(0,y%*%A - c))}
+dual <- function(y){-b%*%y + sum(pmax(0,y%*%A - c))}
 # Optimization of negative collapsed dual with plain vanilla nonlinear solver
 opt <- nlminb(rep(0,m),dual,control=list(iter.max=itermax),lower=rep(0,m),upper=Inf)
 # Optimal dual solution is approximate, close but not exact
@@ -210,6 +210,7 @@ date() #Time - Efficient
 
 
  
+
 
 
 
