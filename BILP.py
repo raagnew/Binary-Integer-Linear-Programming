@@ -134,8 +134,6 @@ def BILP_MAX_APPROX(c, b, A):
         "NUMBER_VARIABLES": n,
         "NUMBER_CONSTRAINTS": m,
         "EXECUTION_SECONDS": del_time,
-        "SOLVER_ITERATIONS": opt.nit,
-        "SOLVER_EVALUATIONS": opt.nfev,
         "APPROX_BILP_SOLN": x,
         "APPROX_BILP_MAX": obj,
         "APPROX_DUAL_LP_MIN": opt.fun,
@@ -237,14 +235,11 @@ def BILP_MIN_APPROX(c, b, A):
         "NUMBER_VARIABLES": n,
         "NUMBER_CONSTRAINTS": m,
         "EXECUTION_SECONDS": del_time,
-        "SOLVER_ITERATIONS": out['SOLVER_ITERATIONS'],
-        "SOLVER_EVALUATIONS": out['SOLVER_EVALUATIONS'],
         "APPROX_BILP_SOLN": x,
         "APPROX_BILP_MIN": obj,
         "APPROX_DUAL_LP_MAX": bnd,
         "APPROXIMATION_RATIO": obj / bnd,
         "CONSTRAINTS_SATISFIED": np.sum(Ax >= b),
-      # "CONSTRAINTS_SATISFIED": sum(1 for val, bi in zip(Ax, b) if val >= bi),
         "CONSTRAINT_DETAILS": df
     }
 
@@ -413,7 +408,7 @@ for key,value in OUT.items():
     print()
 
 print()
-print('Randomized Inputs for Large Randomized Problem (50000 variables, 300 constraints')
+print('Inputs for Large Randomized Problem (50000 variables, 300 constraints')
 print('Using same randomized data as R')
 print()
 with open('c:/BILP/Large_Problem.txt','r') as FILE:

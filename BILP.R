@@ -123,10 +123,10 @@ df <- data.frame(as.vector(A%*%x),rep(" <= ",m),b)
 names(df) <- c("Ax"," <= ","b")
 Time_Out <- Sys.time()
 del_time <- as.numeric(difftime(Time_Out,Time_In,units="secs")) # Imprecise for small deltas
-result <- list(n,m,del_time,opt$iterations,opt$evaluations,x,obj,opt$objective,
+result <- list(n,m,del_time,x,obj,opt$objective,
 obj/opt$objective,sum(as.vector(A%*%x) <= b),df)
-names(result) <- c("NUMBER_VARIABLES","NUMBER_CONSTRAINTS","EXECUTION_SECONDS","SOLVER_ITERATIONS",
-"SOLVER_EVALUATIONS","APPROX_BILP_SOLN","APPROX_BILP_MAX","APPROX_DUAL_LP_MIN",
+names(result) <- c("NUMBER_VARIABLES","NUMBER_CONSTRAINTS","EXECUTION_SECONDS",
+"APPROX_BILP_SOLN","APPROX_BILP_MAX","APPROX_DUAL_LP_MIN",
 "APPROXIMATION_RATIO","CONSTRAINTS_SATISFIED","CONSTRAINT_DETAILS")
 return(result)}
 
@@ -208,15 +208,14 @@ df <- data.frame(as.vector(A%*%x),rep(" >= ",m),b)
 names(df) <- c("Ax"," >= ","b")
 Time_Out <- Sys.time()
 del_time <- as.numeric(difftime(Time_Out,Time_In,units="secs")) # Imprecise for small deltas
-result <- list(n,m,del_time,out$SOLVER_ITERATIONS,out$SOLVER_EVALUATIONS,x,obj,bnd,obj/bnd,sum(as.vector(A%*%x) >= b),df)
-names(result) <- c("NUMBER_VARIABLES","NUMBER_CONSTRAINTS","EXECUTION_SECONDS","SOLVER_ITERATIONS",
-"SOLVER_EVALUATIONS","APPROX_BILP_SOLN","APPROX_BILP_MIN","APPROX_DUAL_LP_MAX","APPROXIMATION_RATIO",
+result <- list(n,m,del_time,x,obj,bnd,obj/bnd,sum(as.vector(A%*%x) >= b),df)
+names(result) <- c("NUMBER_VARIABLES","NUMBER_CONSTRAINTS","EXECUTION_SECONDS",
+"APPROX_BILP_SOLN","APPROX_BILP_MIN","APPROX_DUAL_LP_MAX","APPROXIMATION_RATIO",
 "CONSTRAINTS_SATISFIED","CONSTRAINT_DETAILS")
 return(result)}
 
 # Selected output indices
-OUT1 <- c(1:3,5:8)
-OUT2 <- c(1:5,7:10)
+IND <- c(1:3,5:8)
 
 # Small Textbook Maximization Problem
 # max 8*x1 + 11*x2 + 6*x3 + 4*x4
@@ -283,9 +282,9 @@ A <- matrix(v[504:15503],nrow=length(b),ncol=length(c),byrow=TRUE)
 
 # EXACT version didn't solve
 
-BILP.MAX.LP(c,b,A)[OUT1] # Very close
+BILP.MAX.LP(c,b,A)[IND] # Very close
 
-BILP.MAX.APPROX(c,b,A)[OUT2] # Very close
+BILP.MAX.APPROX(c,b,A)[IND] # Very close
 
 # Chu & Beasley (1998) got an even better maximum of 300460 via a
 # genetic algorithm but it was also much slower.
@@ -294,11 +293,11 @@ BILP.MAX.APPROX(c,b,A)[OUT2] # Very close
 
 # EXACT version didn't solve
 
-BILP.MIN.LP(c,b,A)[OUT1] # Very close
+BILP.MIN.LP(c,b,A)[IND] # Very close
 
-BILP.MIN.APPROX(c,b,A)[OUT2] # Very close
+BILP.MIN.APPROX(c,b,A)[IND] # Very close
 
-# Randomized Inputs for Large Randomized Problem (50000 variables, 300 constraints)
+# Inputs for Large Randomized Problem (50000 variables, 300 constraints)
 # Explicit LP versions wouldn't run.  Only approximations ran.
 set.seed(17)
 c <- sample.int(100,50000,replace=TRUE,prob=NULL)
@@ -313,7 +312,7 @@ A <- matrix(A,nrow=length(b),ncol=length(c),byrow=TRUE)
 
 # LP version didn't run
 
-BILP.MAX.APPROX(c,b,A)[OUT2] # Extremely close
+BILP.MAX.APPROX(c,b,A)[IND] # Extremely close
 
 # Mirror-image minimization summaries
 
@@ -321,7 +320,7 @@ BILP.MAX.APPROX(c,b,A)[OUT2] # Extremely close
 
 # LP version didn't run
 
-BILP.MIN.APPROX(c,b,A)[OUT2] # Extremely close
+BILP.MIN.APPROX(c,b,A)[IND] # Extremely close
 
 # The following set covering problems show pitfalls of simple shadow price sorting.
 # Sorting should work better with more differentiated values in c-vector.
@@ -424,9 +423,9 @@ A <- rbind(A,z)}
 
 # Exact version didn't run
 
-BILP.MIN.LP(c,b,A)[OUT1] # Suboptimal
+BILP.MIN.LP(c,b,A)[IND] # Suboptimal
 
-BILP.MIN.APPROX(c,b,A)[OUT2] # Suboptimal
+BILP.MIN.APPROX(c,b,A)[IND] # Suboptimal
 
 # Beasely (1987) indicates an exact minimum of 236 for this
 # problem.  His algorithm achieved an upper bound of
@@ -436,9 +435,9 @@ BILP.MIN.APPROX(c,b,A)[OUT2] # Suboptimal
 
 # Exact version didn't run
 
-BILP.MAX.LP(c,b,A)[OUT1] # Presumably suboptimal
+BILP.MAX.LP(c,b,A)[IND] # Presumably suboptimal
 
-BILP.MAX.APPROX(c,b,A)[OUT2] # Presumably suboptimal
+BILP.MAX.APPROX(c,b,A)[IND] # Suboptimal
 
 # Problem in file scpnre5.txt
 v <- scan(file="c:/BILP/scpnre5.txt",sep="")
@@ -460,9 +459,9 @@ A <- rbind(A,z)}
 
 # Exact version didn't run
 
-BILP.MIN.LP(c,b,A)[OUT1] # Suboptimal
+BILP.MIN.LP(c,b,A)[IND] # Suboptimal
 
-BILP.MIN.APPROX(c,b,A)[OUT2] # Suboptimal
+BILP.MIN.APPROX(c,b,A)[IND] # Suboptimal
 
 # Beasley (1990) achieved an approximate minimum of 28,
 # using a more complex algorithm, better than ours.
@@ -471,7 +470,10 @@ BILP.MIN.APPROX(c,b,A)[OUT2] # Suboptimal
 
 # Exact version didn't run 
 
-BILP.MAX.LP(c,b,A)[OUT1] # Suboptimal
+BILP.MAX.LP(c,b,A)[IND] # Presumably suboptimal
 
-BILP.MAX.APPROX(c,b,A)[OUT2] # Presumably suboptimal
+BILP.MAX.APPROX(c,b,A)[IND] # Suboptimal
+
+
+
 
